@@ -1,0 +1,15 @@
+{
+  "name": "project-sentinel-services",
+  "version": "1.0.0",
+  "description": "Microservices for Project Sentinel",
+  "main": "service-auth.js",
+  "scripts": {
+    "start:auth": "node service-auth.js",
+    "start:payment": "node service-payment.js",
+    "start:inventory": "node service-inventory.js",
+    "start:all": "node service-auth.js & node service-payment.js & node service-inventory.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

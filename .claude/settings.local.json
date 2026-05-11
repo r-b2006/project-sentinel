@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const db = require\\('better-sqlite3'\\)\\('./sentinel.db'\\); console.log\\(JSON.stringify\\(db.prepare\\('SELECT * FROM service_status'\\).all\\(\\), null, 2\\)\\); db.close\\(\\);\")",
+      "Bash(curl -s http://localhost:3001/health)",
+      "Bash(start /B node service-auth.js)",
+      "Bash(start /B node service-payment.js)",
+      "Bash(start /B node service-inventory.js)",
+      "Bash(curl -s http://localhost:3002/health)",
+      "Bash(curl -s http://localhost:3003/health)",
+      "Bash(node service-inventory.js)",
+      "Bash(date -Iseconds)",
+      "Bash(echo \"RESOLVED|$\\(date -Iseconds\\)|auth|Bug Type 3: Health check returns BROKEN|RESOLVED by Claude\")",
+      "Bash(echo \"RESOLVED|$\\(date -Iseconds\\)|inventory|Bug Type 4: Express require line commented out|RESOLVED by Claude\")",
+      "Bash(echo \"INVESTIGATING|$\\(date -Iseconds\\)|service-inventory|Main Agent activated|IN_PROGRESS\")",
+      "Bash(curl *)",
+      "Bash(node service-payment.js)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3002)",
+      "Bash(taskkill *)",
+      "Bash(powershell *)",
+      "Bash(echo \"RESOLVED|$\\(date -Iseconds\\)|payment|Bug Type 3: Health check fixed|CLOSED\")",
+      "Bash(echo \"INVESTIGATING|$\\(date -Iseconds\\)|service-auth|Main Agent activated|IN_PROGRESS\")",
+      "Bash(findstr :3001)",
+      "Bash(node service-auth.js)",
+      "Bash(node tests/service-auth.test.js)",
+      "Bash(echo \"RESOLVED|$\\(date -Iseconds\\)|service-auth|Fix verified by Beta|CLOSED\")",
+      "Bash(findstr :3003)",
+      "Bash(node tests/service-inventory.test.js)",
+      "Bash(echo \"RESOLVED|$\\(date -Iseconds\\)|service-inventory|Fix verified by Beta|CLOSED\")",
+      "Bash(findstr \":3001 :3002 :3003\")",
+      "Bash(findstr LISTENING)",
+      "Bash(echo \"INVESTIGATING|$\\(date -Iseconds\\)|service-payment|Main Agent activated|IN_PROGRESS\")",
+      "Bash(node tests/service-payment.test.js)",
+      "Bash(echo \"RESOLVED|$\\(date -Iseconds\\)|service-payment|Fix verified by Beta|CLOSED\")",
+      "Bash(node scripts/chaos-monkey.js)",
+      "Bash(node -e \"const db = require\\('better-sqlite3'\\)\\('./sentinel.db'\\); console.log\\(db.prepare\\('SELECT service_name, status, error_message FROM service_status WHERE service_name=?'\\).get\\('service-payment'\\)\\); db.close\\(\\);\")",
+      "Bash(node -e ' *)",
+      "Bash(echo \"RESOLVED|$\\(date -Iseconds\\)|service-inventory|Bug Type 5: Corrupt JSON config fixed|CLOSED\")"
+    ]
+  }
+}
