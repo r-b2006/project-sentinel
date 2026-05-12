@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        const filePath = path.join(process.cwd(), '..', '..', 'docs', 'incident-history.log');
+        const filePath = path.join(process.cwd(), '..', 'docs', 'incident-history.log');
 
         if (!fs.existsSync(filePath)) {
             return NextResponse.json({ log: 'No incidents yet' });
