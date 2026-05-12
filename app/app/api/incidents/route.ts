@@ -1,8 +1,25 @@
 import Database from 'better-sqlite3';
 import { NextResponse } from 'next/server';
 import path from 'path';
+import fs from 'fs';
 
 export const dynamic = 'force-dynamic';
+
+export async function GET() {
+    try {
+        const filePath = path.join(process.cwd(), '..', '..', 'docs', 'incident-history.log');
+
+        if (!fs.existsSync(filePath)) {
+            return NextResponse.json({ log: 'No incidents yet' });
+        }
+
+        const fileContents = fs.readFileSync(filePath, 'utf8');
+        return NextResponse.json({ log: fileContents });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return NextResponse.json({ log: 'No incidents yet' });
+    }
+}
 
 export async function POST(request: Request) {
     try {
