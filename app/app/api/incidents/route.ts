@@ -1,20 +1,27 @@
+import Database from 'better-sqlite3';
 import { NextResponse } from 'next/server';
-import fs from 'fs';
 import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function POST(request: Request) {
     try {
-        const filePath = path.join(process.cwd(), '..', 'docs', 'incident-history.log');
+        const { service_name, status, error_message, resolved_by, resolution_notes } = await request.json();
 
-        if (!fs.existsSync(filePath)) {
-            return NextResponse.json({ log: 'No incidents yet' });
-        }
+        const dbPath = path.join(process.cwd(), '..', 'sentinel.db');
+        const db = new Database(dbPath);
 
-        const fileContents = fs.readFileSync(filePath, 'utf8');
-        return NextResponse.json({ log: fileContents });
+        const stmt = db.prepare(`
+            UPDATE service_status
+            SET status = ?, error_message = ?, resolved_by = ?, resolution_notes = ?, updated_at = datetime('now')
+            WHERE service_name = ?
+        `);
+        stmt.run(status, error_message || '', resolved_by || '', resolution_notes || '', service_name);
+        db.close();
+
+        return NextResponse.json({ success: true });
     } catch (error) {
-        return NextResponse.json({ log: 'No incidents yet' });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
