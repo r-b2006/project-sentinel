@@ -1,4 +1,5 @@
 const Database = require('better-sqlite3');
+const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -7,10 +8,63 @@ const db = new Database(dbPath);
 const errorLogPath = path.join(__dirname, '..', 'services', 'error.log');
 
 const services = [
-    { name: 'service-auth', url: 'http://localhost:3001/health' },
-    { name: 'service-payment', url: 'http://localhost:3002/health' },
-    { name: 'service-inventory', url: 'http://localhost:3003/health' }
+    { name: 'service-auth', url: 'http://localhost:3001/health', file: 'C:/Users/HP/project-sentinel/services/service-auth.js' },
+    { name: 'service-payment', url: 'http://localhost:3002/health', file: 'C:/Users/HP/project-sentinel/services/service-payment.js' },
+    { name: 'service-inventory', url: 'http://localhost:3003/health', file: 'C:/Users/HP/project-sentinel/services/service-inventory.js' }
 ];
+
+// Map service names to port for killing
+const portMap = { 'service-auth': 3001, 'service-payment': 3002, 'service-inventory': 3003 };
+
+function getPreviousStatus(serviceName) {
+    try {
+        const stmt = db.prepare('SELECT status FROM service_status WHERE service_name = ?');
+        const row = stmt.get(serviceName);
+        return row ? row.status : null;
+    } catch {
+        return null;
+    }
+}
+
+function restartService(service) {
+    return new Promise((resolve) => {
+        const port = portMap[service.name];
+        console.log(`   🔄 Restarting ${service.name} (port ${port})...`);
+
+        // Kill existing process on port
+        exec(`netstat -ano | findstr :${port} | findstr LISTENING`, (err, stdout) => {
+            if (stdout && stdout.trim()) {
+                const pid = stdout.trim().split(/\s+/).pop();
+                if (pid && !isNaN(pid)) {
+                    exec(`taskkill /F /PID ${pid}`, () => {
+                        setTimeout(() => {
+                            exec(`node "${service.file}"`, (spawnErr, stdout, stderr) => {
+                                if (spawnErr) {
+                                    console.log(`   ❌ Restart failed: ${spawnErr.message}`);
+                                } else {
+                                    console.log(`   ✅ Service restarted`);
+                                }
+                                resolve();
+                            });
+                        }, 1000);
+                    });
+                } else {
+                    resolve();
+                }
+            } else {
+                // No process running, start it
+                exec(`node "${service.file}"`, (spawnErr) => {
+                    if (spawnErr) {
+                        console.log(`   ❌ Start failed: ${spawnErr.message}`);
+                    } else {
+                        console.log(`   ✅ Service started`);
+                    }
+                    resolve();
+                });
+            }
+        });
+    });
+}
 
 async function checkApiReachable() {
     try {
@@ -68,6 +122,7 @@ function updateDirectDb(serviceName, status, errorMessage) {
 }
 
 async function checkService(service) {
+    const previousStatus = getPreviousStatus(service.name);
     const startTime = Date.now();
     try {
         const controller = new AbortController();
@@ -96,6 +151,12 @@ async function checkService(service) {
             `);
             stmt.run(service.name);
             console.log(`✅ ${service.name}: OK (${duration}ms)`);
+
+            // Auto-restart if previously CRITICAL (service was fixed)
+            if (previousStatus === 'CRITICAL') {
+                console.log(`   🔄 Service was CRITICAL, now OK — restarting to pick up fix...`);
+                await restartService(service);
+            }
         } else {
             throw new Error(`Status: ${data.status}`);
         }

@@ -10,7 +10,7 @@ const LOG_FILE = path.join(__dirname, 'logs', 'service-auth.log');
 app.get('/health', (req, res) => {
     try {
         console.log(`[${new Date().toISOString()}] GET /health called on ${SERVICE_NAME}`);
-        res.json({ status: 'BROKEN', service: SERVICE_NAME, timestamp: new Date().toISOString() });
+        res.json({ status: 'OK', service: SERVICE_NAME, timestamp: new Date().toISOString() });
     } catch (error) {
         console.error(`[${new Date().toISOString()}] Error in /health:`, error.message);
         res.status(500).json({ error: error.message });

@@ -1,6 +1,0 @@
-INCIDENT|2026-05-11T16:06:20.117Z|service-inventory|Bug Type 3: Health check returns BROKEN instead of OK|OPEN
-INVESTIGATING|2026-05-11T21:39:01+05:30|service-inventory|Main Agent activated|IN_PROGRESS
-RESOLVED|2026-05-11T21:42:37+05:30|service-inventory|Fix verified by Beta|CLOSED
-INCIDENT|2026-05-11T16:14:06.252Z|service-inventory|Bug Type 5: Created invalid config.json + require it in service|OPEN
-INVESTIGATING|2026-05-11T21:46:19+05:30|service-inventory|Main Agent activated|IN_PROGRESS
-RESOLVED|2026-05-11T21:49:37+05:30|service-inventory|Fix verified by Beta|CLOSED

@@ -5,6 +5,20 @@ const path = require('path');
 const services = ['service-auth.js', 'service-payment.js', 'service-inventory.js'];
 const portMap = { 'service-auth.js': 3001, 'service-payment.js': 3002, 'service-inventory.js': 3003 };
 
+// Shuffle array (Fisher-Yates)
+function shuffle(arr) {
+    const arr2 = [...arr];
+    for (let i = arr2.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr2[i], arr2[j]] = [arr2[j], arr2[i]];
+    }
+    return arr2;
+}
+
+// Track run count for balanced distribution
+let runCount = 0;
+let shuffledServices = shuffle(services);
+
 const bugs = [
     {
         id: 1,
@@ -172,7 +186,11 @@ function updateDirectDb(serviceName, status, errorMessage) {
 }
 
 async function run() {
-    const serviceFile = pickRandom(services);
+    runCount++;
+    if (runCount % 3 === 0) {
+        shuffledServices = shuffle(services);
+    }
+    const serviceFile = shuffledServices[(runCount - 1) % 3];
     const servicePath = path.join(__dirname, '..', 'services', serviceFile);
     const serviceName = serviceFile.replace('.js', '');
     const port = portMap[serviceFile];

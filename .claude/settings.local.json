@@ -36,7 +36,14 @@
       "Bash(node scripts/chaos-monkey.js)",
       "Bash(node -e \"const db = require\\('better-sqlite3'\\)\\('./sentinel.db'\\); console.log\\(db.prepare\\('SELECT service_name, status, error_message FROM service_status WHERE service_name=?'\\).get\\('service-payment'\\)\\); db.close\\(\\);\")",
       "Bash(node -e ' *)",
-      "Bash(echo \"RESOLVED|$\\(date -Iseconds\\)|service-inventory|Bug Type 5: Corrupt JSON config fixed|CLOSED\")"
+      "Bash(echo \"RESOLVED|$\\(date -Iseconds\\)|service-inventory|Bug Type 5: Corrupt JSON config fixed|CLOSED\")",
+      "Bash(Get-Content *)",
+      "Bash(npm test *)",
+      "Bash(node -e \"require\\('./service-payment.js'\\)\")",
+      "Bash(findstr \"3002\")",
+      "Bash(node -e \"const Database = require\\('better-sqlite3'\\); const db = new Database\\('sentinel.db'\\); const stmt = db.prepare\\('SELECT * FROM service_status'\\); console.log\\(stmt.all\\(\\)\\); db.close\\(\\);\")",
+      "Bash(Set-Content *)",
+      "Bash(node -e \"const Database = require\\('better-sqlite3'\\); const db = new Database\\('sentinel.db'\\); console.log\\(db.prepare\\('SELECT service_name, status, error_message, resolved_by, resolution_notes FROM service_status'\\).all\\(\\)\\); db.close\\(\\);\")"
     ]
   }
 }
