@@ -1,6 +1,4 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+# Project Sentinel — Claude Agent Rules
 
 ## Project Overview
 Project Sentinel is an autonomous incident resolution engine. It uses a 3-agent architecture (Main Agent, Alpha-Debugger, Beta-QA) to detect, investigate, and resolve service failures.
@@ -47,8 +45,6 @@ node scripts/poll-services.js
 ```
 
 ## Architecture
-
-```
 project-sentinel/
 ├── app/                 # Next.js dashboard (TypeScript)
 │   ├── app/page.tsx    # Main dashboard UI
@@ -64,33 +60,62 @@ project-sentinel/
 ├── docs/
 │   └── incident-history.log  # Resolution log
 └── sentinel.db         # SQLite database for service status
-```
 
-## Agent Protocol
+## TypeScript & Code Standards
+- Always use strict TypeScript
+- All variables: camelCase naming
+- Never use var — only const or let
+- All functions must have error handling with try/catch
+- Every file must have console.log for key actions
 
-### Resolution Protocol (follow this order)
-1. Read error log in `/services/logs/`
-2. Check `/docs/incident-history.log` for same error
-3. If fix failed before → find alternative approach
-4. After fixing → run relevant test before committing
-5. Log action to incident-history.log with timestamp
-6. Update dashboard via POST to `/api/incidents`
+## Resolution Protocol
+Before applying ANY fix:
+1. Read the error log in /services/logs/
+2. Open /docs/incident-history.log — check if this exact error happened before
+3. If same fix was tried and FAILED before → activate Thinking Mode to find alternative
+4. After fixing, always run npm test before committing
+5. Log every action to /docs/incident-history.log with timestamp
+6. Always update dashboard status after each action
 
-### Agent Roles
-- **Main Agent**: Orchestrates, updates dashboard/incident status
-- **Alpha (Debugger)**: Reads logs, finds bugs, implements fixes
-- **Beta (QA)**: Writes and runs regression tests
+## Short Sentinel Agent Command
+When a service is CRITICAL, use this short command:
+"SENTINEL AGENT — [service-name] is CRITICAL. Execute full Resolution Protocol from CLAUDE.md with Main Agent, Alpha Debugger, and Beta QA. After Beta confirms, restart the fixed service."
 
-## Code Standards
+This triggers full flow:
+1. Main Agent updates dashboard to INVESTIGATING
+2. Appends "INVESTIGATING|[timestamp]|[service]|Main Agent activated|IN_PROGRESS" to incident-history.log
+3. Spawns Subagent Alpha to read logs, find and fix the bug
+4. Spawns Subagent Beta to write and run regression tests
+5. Main Agent updates dashboard to RESOLVED with resolved_by="Claude Sentinel"
+6. Appends "RESOLVED|[timestamp]|[service]|Fix verified by Beta|CLOSED" to incident-history.log
+7. Restarts the fixed service automatically
 
-- Services: JavaScript with Express
-- Dashboard: TypeScript with Next.js
-- Use `const`/`let` — never `var`
-- All functions need try/catch error handling
-- Log key actions with console.log and timestamps
-- Test files: `service-name.test.js`
-- Log files: `service-name.log` in `services/logs/`
+## Auto-Restart Protocol
+- poll-services.js monitors all services every 10 seconds
+- When service status is RESOLVED in database → automatically restart using: node <service-file>.js &
+- After restart wait 3 seconds → check health → if OK update database to OK
+- Service paths:
+  * service-auth: C:\Users\HP\project-sentinel\services\service-auth.js
+  * service-payment: C:\Users\HP\project-sentinel\services\service-payment.js
+  * service-inventory: C:\Users\HP\project-sentinel\services\service-inventory.js
+
+## Agent Roles — STRICT
+- Main Agent: ONLY updates dashboard UI and incident status
+- Subagent Alpha (Debugger): ONLY reads logs, finds bugs, implements fixes
+- Subagent Beta (QA): ONLY writes regression tests and runs them
+
+## 5 Bug Types (Chaos Monkey)
+- Bug Type 1: Syntax Error — adds "const x = ;" on line 2
+- Bug Type 2: Type Mismatch — wraps port in quotes + throws error
+- Bug Type 3: Logic Error — changes "OK" to "BROKEN" in health route
+- Bug Type 4: Delete Dependency — comments out express require line
+- Bug Type 5: Corrupt JSON — creates invalid config.json + requires it
+
+## Naming Conventions
+- Service files: service-name.js
+- Test files: service-name.test.js
+- Log files: service-name.log
 
 ## Commit Rules
 - Never commit without passing tests
-- Message format: `"fix: [what was fixed] by Sentinel Agent"`
+- Commit message format: "fix: [what was fixed] by Sentinel Agent"
