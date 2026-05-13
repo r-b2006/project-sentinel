@@ -144,19 +144,33 @@ async function checkService(service) {
         }
 
         if (data.status === 'OK') {
-            const stmt = db.prepare(`
-                UPDATE service_status
-                SET status = 'OK', last_checked = datetime('now'), error_message = '', updated_at = datetime('now')
-                WHERE service_name = ?
-            `);
-            stmt.run(service.name);
-            console.log(`✅ ${service.name}: OK (${duration}ms)`);
+            // Only update to OK if not already RESOLVED or INVESTIGATING (preserve manual status)
+            if (previousStatus !== 'RESOLVED' && previousStatus !== 'INVESTIGATING') {
+                const stmt = db.prepare(`
+                    UPDATE service_status
+                    SET status = 'OK', last_checked = datetime('now'), error_message = '', updated_at = datetime('now')
+                    WHERE service_name = ?
+                `);
+                stmt.run(service.name);
+                console.log(`✅ ${service.name}: OK (${duration}ms)`);
+            } else {
+                console.log(`✅ ${service.name}: OK (${duration}ms) [status preserved: ${previousStatus}]`);
+            }
 
             // Auto-restart if previously CRITICAL (service was fixed)
             if (previousStatus === 'CRITICAL') {
                 console.log(`   🔄 Service was CRITICAL, now OK — restarting to pick up fix...`);
                 await restartService(service);
             }
+        } else if (data.status === 'BROKEN') {
+            // Set to INVESTIGATING first when issue detected
+            const stmt = db.prepare(`
+                UPDATE service_status
+                SET status = 'INVESTIGATING', last_checked = datetime('now'), error_message = ?, updated_at = datetime('now')
+                WHERE service_name = ?
+            `);
+            stmt.run(`Status: ${data.status}`, service.name);
+            console.log(`🔍 ${service.name}: INVESTIGATING (status: BROKEN)`);
         } else {
             throw new Error(`Status: ${data.status}`);
         }
@@ -164,16 +178,32 @@ async function checkService(service) {
         const errorMessage = error.message;
         const isConnRefused = errorMessage.includes('ECONNREFUSED') || errorMessage.includes('fetch failed');
 
-        // Update database directly
-        const stmt = db.prepare(`
-            UPDATE service_status
-            SET status = 'CRITICAL', last_checked = datetime('now'), error_message = ?, updated_at = datetime('now')
-            WHERE service_name = ?
-        `);
-        stmt.run(errorMessage, service.name);
+        // Only update to INVESTIGATING if not already RESOLVED (preserve resolved status)
+        if (previousStatus !== 'RESOLVED') {
+            const stmt = db.prepare(`
+                UPDATE service_status
+                SET status = 'INVESTIGATING', last_checked = datetime('now'), error_message = ?, updated_at = datetime('now')
+                WHERE service_name = ?
+            `);
+            stmt.run(errorMessage, service.name);
+        }
 
         // Call API with retry logic
-        await updateServiceWithRetry(service.name, 'CRITICAL', errorMessage);
+        await updateServiceWithRetry(service.name, 'INVESTIGATING', errorMessage);
+
+        // Auto-restart ALL services when they're down (connection refused)
+        if (isConnRefused) {
+            console.log(`   🔄 Service is down, attempting auto-restart...`);
+            await restartService(service);
+
+            // After restart attempt, update to CRITICAL if still down
+            const checkStmt = db.prepare(`
+                UPDATE service_status
+                SET status = 'CRITICAL', last_checked = datetime('now'), error_message = ?, updated_at = datetime('now')
+                WHERE service_name = ?
+            `);
+            checkStmt.run(errorMessage, service.name);
+        }
 
         if (isConnRefused) {
             console.log(`❌ ${service.name}: CRITICAL — connection refused`);
@@ -193,7 +223,7 @@ async function pollAllServices() {
     await Promise.all(promises);
 }
 
-console.log('🔍 Sentinel Monitor active — polling every 10 seconds...');
+console.log('🔍 Sentinel Monitor active — polling every 5 seconds...');
 
 pollAllServices();
-setInterval(pollAllServices, 10000);
+setInterval(pollAllServices, 5000);

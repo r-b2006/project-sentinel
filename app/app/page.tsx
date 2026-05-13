@@ -46,14 +46,14 @@ export default function Home() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+    const interval = setInterval(fetchData, 2000);
     return () => clearInterval(interval);
   }, []);
 
   // Filter out duplicate "service-service-" entries
   const cleanIncidents = incidents.replace(/service-service-/g, 'service-');
-  const openCount = (cleanIncidents.match(/\|OPEN$/gm) || []).length;
-  const closedLines = (cleanIncidents.match(/\|CLOSED$/gm) || []).length;
+  const openCount = (cleanIncidents.match(/\|OPEN\|/gm) || []).length;
+  const closedLines = (cleanIncidents.match(/\|CLOSED\|/gm) || []).length;
   const resolvedLines = (cleanIncidents.match(/\|RESOLVED\|/gm) || []).length;
   const resolvedCount = closedLines + resolvedLines;
   const activeIncidents = Math.max(0, openCount - resolvedCount);
