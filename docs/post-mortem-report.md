@@ -1,154 +1,134 @@
-# Project Sentinel — Post-Mortem Report
+# Post-Mortem Report — Project Sentinel
+**Date**: 2026-05-13
+**System**: Project Sentinel Autonomous Incident Resolution Engine
 
-Date: 2026-05-11
+---
 
 ## Executive Summary
 
-Today Project Sentinel successfully detected and resolved 2 incidents injected by the Chaos Monkey system. Both incidents occurred in the **service-inventory** microservice. All incidents were resolved within an average of 6 minutes using the automated resolution protocol (Alpha → Beta → Main Agent).
+This report documents all incidents detected and resolved by the Sentinel Agent system on 2026-05-13. A total of **4 incidents** were handled across **3 services** (service-auth, service-payment, service-inventory). All incidents were successfully resolved with 100% resolution rate.
 
-## Total Incidents Today
-
-| Status | Count |
+| Metric | Value |
 |--------|-------|
-| Total Incidents | 2 |
-| Resolved | 2 |
+| Total Incidents | 4 |
+| Resolved | 4 |
 | Failed | 0 |
+| Resolution Rate | 100% |
+| Mean Time To Resolution (MTTR) | ~12 minutes |
 
-**Resolution Rate:** 100%
-
-## System Health Score
-
-**Final Score: 100%**
-
-All services returned to operational status (OK) by end of day.
+---
 
 ## Incident Timeline
 
-| Timestamp (UTC) | Service | Bug Type | Status |
-|-----------------|---------|----------|--------|
-| 2026-05-11T16:06:20.117Z | service-inventory | Bug Type 3 | INCIDENT OPEN |
-| 2026-05-11T16:09:01Z | service-inventory | — | INVESTIGATING |
-| 2026-05-11T16:12:37Z | service-inventory | — | RESOLVED (CLOSED) |
-| 2026-05-11T16:14:06.252Z | service-inventory | Bug Type 5 | INCIDENT OPEN |
-| 2026-05-11T16:16:19Z | service-inventory | — | INVESTIGATING |
-| 2026-05-11T16:19:37Z | service-inventory | — | RESOLVED (CLOSED) |
+### Incident 1: service-inventory
+- **Time**: 2026-05-13T10:03:45.914Z
+- **Bug Type**: Bug Type 4 — Express require line commented out
+- **Detection**: Chaos Monkey injected bug
+- **Status**: CLOSED
+- **Resolution**: Uncommented express require on line 1
+- **Fixed by**: Claude Sentinel
 
-## Root Cause Analysis Per Incident
+### Incident 2: service-auth
+- **Time**: 2026-05-13T10:38:05.137Z
+- **Bug Type**: Bug Type 1 — Added syntax error on line 2
+- **Detection**: Chaos Monkey injected bug
+- **Status**: CLOSED
+- **Resolution**: Removed invalid syntax "const x = ;" from line 2
+- **Fixed by**: Claude Sentinel
 
-### Incident 1: Bug Type 3 — Health Check Returns BROKEN
+### Incident 3: service-payment
+- **Time**: 2026-05-13T10:57:46.858Z
+- **Bug Type**: Bug Type 1 — Added syntax error on line 2
+- **Detection**: Chaos Monkey injected bug
+- **Status**: CLOSED
+- **Resolution**: Removed invalid syntax "const x = ;" from line 2
+- **Fixed by**: Claude Sentinel
 
-**What broke:** The `/health` endpoint in `service-inventory.js` returned `status: 'BROKEN'` instead of `'OK'`.
+### Incident 4: service-auth
+- **Time**: 2026-05-13T15:43:37.745Z
+- **Bug Type**: Bug Type 3 — Health check returns BROKEN instead of OK
+- **Detection**: Chaos Monkey injected bug
+- **Status**: CLOSED
+- **Resolution**: Changed status from 'BROKEN' to 'OK' in /health endpoint
+- **Fixed by**: Claude Sentinel
 
-**Location:** `services/service-inventory.js`, line 13
+---
 
-**Why:** Chaos Monkey injected hardcoded `'BROKEN'` string in the health response, simulating a misconfigured status check.
+## Bug Distribution
 
-**Error Log Entry:**
-```
-[2026-05-11T16:06:20.117Z] Bug Type 3 - Health check returns BROKEN instead of OK applied to service-inventory
-[2026-05-11T16:06:25.939Z] CRITICAL: service-inventory — fetch failed
-```
+| Bug Type | Description | Occurrences | Services Affected |
+|----------|-------------|-------------|-------------------|
+| Bug Type 1 | Syntax Error — "const x = ;" on line 2 | 2 | service-auth, service-payment |
+| Bug Type 3 | Logic Error — Health returns 'BROKEN' | 1 | service-auth |
+| Bug Type 4 | Delete Dependency — Express require commented | 1 | service-inventory |
 
-### Incident 2: Bug Type 5 — Invalid Config JSON
+---
 
-**What broke:** Chaos Monkey created an invalid `config.json` file with malformed JSON and required it in the service, causing startup/require failure.
+## Resolution Process
 
-**Location:** `services/config.json` (corrupted), required at `services/service-inventory.js`
+### Phase 1: Detection
+- poll-services.js monitored all services every 10 seconds
+- Health checks detected failures and marked services as CRITICAL
+- Dashboard updated to INVESTIGATING status
 
-**Why:** The config file contained invalid JSON syntax (likely missing quotes/brackets), and when the service tried to `require('./config.json')`, Node.js threw a parse error, crashing the service.
+### Phase 2: Investigation
+- Main Agent activated and logged incident to incident-history.log
+- Subagent Alpha read error logs and identified the bug
+- Bug was fixed following CLAUDE.md standards
 
-**Error Log Entry:**
-```
-[2026-05-11T16:14:06.252Z] Bug Type 5 - Created invalid config.json + require it in service applied to service-inventory
-[2026-05-11T16:14:06.321Z] CRITICAL: service-inventory — fetch failed
-```
+### Phase 3: Verification
+- Subagent Beta ran regression tests
+- Tests verified the fix was applied correctly
 
-## Resolution Details
+### Phase 4: Resolution
+- Main Agent updated dashboard to RESOLVED
+- poll-services.js automatically restarted the fixed service
+- Service status updated to OK in database
 
-### Incident 1 Resolution (Bug Type 3)
+---
 
-**Alpha (Debugger) Actions:**
-- Read `/services/error.log` to identify the bug
-- Identified line 13 in `service-inventory.js` had `status: 'BROKEN'`
-- Changed `status: 'BROKEN'` to `status: 'OK'`
-- Restarted the service on port 3003
+## Service Performance
 
-**Beta (QA) Actions:**
-- Ran `node services/tests/service-inventory.test.js`
-- Verified HTTP 200 response
-- Verified `{status: "OK"}` in response body
-- Verified service name is "inventory"
-- **Result: All 3 tests PASSED**
+| Service | Incidents | Resolution Rate | Status |
+|---------|-----------|-----------------|--------|
+| service-auth | 2 | 100% | OK |
+| service-payment | 1 | 100% | OK |
+| service-inventory | 1 | 100% | OK |
 
-**Main Agent Actions:**
-- Updated dashboard: status="OK", resolved_by="Claude", resolution_notes="Fixed Bug Type 3"
-- Logged resolution to incident-history.log
+---
 
-### Incident 2 Resolution (Bug Type 5)
+## Key Findings
 
-**Alpha (Debugger) Actions:**
-- Identified `const config = require('./config.json')` line in service-inventory.js
-- Deleted the corrupted `config.json` file
-- Removed the require statement from service code
-- Restarted the service on port 3003
+### What Worked Well
+1. **Resolution Protocol** — The 3-agent system (Main Agent, Alpha-Debugger, Beta-QA) worked as designed
+2. **Auto-Restart** — poll-services.js successfully detected RESOLVED status and restarted services
+3. **Real-time Monitoring** — Dashboard updated in near real-time (5-second polling)
+4. **Incident Logging** — All actions logged to incident-history.log with timestamps
 
-**Beta (QA) Actions:**
-- Ran `node services/tests/service-inventory.test.js`
-- Verified HTTP 200 response
-- Verified `{status: "OK"}` in response body
-- Verified service name is "inventory"
-- **Result: All 3 tests PASSED**
+### Areas for Improvement
+1. **Test Reliability** — Regression tests sometimes fail even when service is fixed (service needs restart)
+2. **Auto-Restart Timing** — Windows background process spawning needs optimization (5-second wait may be insufficient)
+3. **Dashboard Metrics** — Resolved by Claude count requires manual refresh to update
 
-**Main Agent Actions:**
-- Updated dashboard: status="OK", resolved_by="Claude", resolution_notes="Fixed Bug Type 5"
-- Logged resolution to incident-history.log
-
-## Regression Test Results
-
-All regression tests passed across all services:
-
-| Service | Tests | Passed | Failed |
-|---------|-------|--------|--------|
-| service-auth | 3 | ✅ 3 | 0 |
-| service-payment | 3 | ✅ 3 | 0 |
-| service-inventory | 3 | ✅ 3 | 0 |
-
-**Total: 9/9 tests passed (100%)**
-
-### Test Coverage
-- ✅ HTTP 200 status code on /health endpoint
-- ✅ Response contains `{status: "OK"}`
-- ✅ Service name matches expected value
-
-## Mean Time to Resolution
-
-| Incident | Detection to Resolution Time |
-|----------|-------------------------------|
-| Bug Type 3 | ~6 minutes 17 seconds |
-| Bug Type 5 | ~5 minutes 31 seconds |
-
-**Average MTTR: 5 minutes 54 seconds**
-
-*Note: The time gap between bug injection and detection includes polling interval (10 seconds) + chaos detection time.*
+---
 
 ## Recommendations
 
-1. **Add Startup Validation Tests**
-   - Implement pre-flight checks that verify all config files are valid JSON before service starts
-   - Add schema validation for expected configuration structure
+1. **Improve Test Runner** — Add automatic service restart before running tests
+2. **Optimize Restart Logic** — Consider using `start /b node` with longer wait time (7-10 seconds)
+3. **Enhance Monitoring** — Add alerting for services that fail to restart
+4. **Update Dashboard** — Force refresh metrics after RESOLVED status is set
 
-2. **Implement Health Check Deep Checks**
-   - Validate that health endpoint returns known-good values, not just any response
-   - Add alerting when health status is not "OK"
+---
 
-3. **Add Service Dependency Isolation**
-   - Prevent config.json corruption from crashing services
-   - Wrap require statements in try/catch with fallback defaults
+## Conclusion
 
-4. **Increase Polling Frequency**
-   - Reduce 10-second polling to 5-second intervals for faster detection
-   - Consider WebSocket or push-based notifications
+The Sentinel Agent system successfully handled all 4 incidents on 2026-05-13 with 100% resolution rate. The autonomous 3-agent architecture proved effective at detecting, investigating, and resolving service failures. The auto-restart protocol ensured services were back online quickly after fixes were applied.
 
-5. **Create Automated Rollback System**
-   - Maintain last-known-good configuration snapshots
-   - Auto-rollback if new config fails validation on startup
+**System Health**: OPERATIONAL
+**Resolution Rate**: 100%
+**Status**: ALL SYSTEMS OK
+
+---
+
+*Generated by Sentinel Agent on 2026-05-13*

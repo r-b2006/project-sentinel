@@ -38,9 +38,16 @@ function updateStatus(serviceName, status) {
 function restartService(service) {
     return new Promise((resolve) => {
         console.log(`   🔄 Restarting ${service.name}...`);
-        const child = spawn('node', [service.path], { detached: true, stdio: 'ignore' });
+
+        // Use Windows start /b to run in background without new window
+        const child = spawn('cmd', ['/c', 'start', '/b', 'node', service.path], {
+            detached: true,
+            stdio: 'ignore',
+            shell: false
+        });
         child.unref();
 
+        // Wait 5 seconds for service to start, then check health
         setTimeout(async () => {
             try {
                 const response = await fetch(service.url, { signal: AbortSignal.timeout(3000) });
@@ -49,12 +56,24 @@ function restartService(service) {
                     updateStatus(service.name, 'OK');
                 } else {
                     console.log(`   ❌ ${service.name} restart failed - non-200 response`);
+                    // Try one more time after another 3 seconds
+                    setTimeout(async () => {
+                        try {
+                            const retryResponse = await fetch(service.url, { signal: AbortSignal.timeout(3000) });
+                            if (retryResponse.ok) {
+                                console.log(`   ✅ ${service.name} restarted (retry)`);
+                                updateStatus(service.name, 'OK');
+                            }
+                        } catch {}
+                        resolve();
+                    }, 3000);
+                    return;
                 }
-            } catch {
-                console.log(`   ❌ ${service.name} restart failed - not reachable`);
+            } catch (e) {
+                console.log(`   ❌ ${service.name} restart failed - ${e.message}`);
             }
             resolve();
-        }, 3000);
+        }, 5000);
     });
 }
 
@@ -63,6 +82,12 @@ async function checkService(service) {
     const currentStatus = info ? info.status : null;
     const resolvedBy = info ? info.resolved_by : '';
 
+    // If status is RESOLVED and has resolved_by, restart the service
+    if (currentStatus === 'RESOLVED' && resolvedBy && resolvedBy.trim() !== '') {
+        await restartService(service);
+        return;
+    }
+
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
@@ -70,10 +95,7 @@ async function checkService(service) {
         const response = await fetch(service.url, { signal: controller.signal });
         clearTimeout(timeoutId);
 
-        if (response.ok && currentStatus === 'RESOLVED' && resolvedBy) {
-            await restartService(service);
-            console.log(`✅ ${service.name}: OK (resolved)`);
-        } else if (response.ok) {
+        if (response.ok) {
             updateStatus(service.name, 'OK');
             console.log(`✅ ${service.name}: OK`);
         } else {
