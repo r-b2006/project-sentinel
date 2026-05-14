@@ -80,7 +80,7 @@ Before applying ANY fix:
 
 ## Dashboard Metrics
 - **Active Incidents**: Count of services with status=CRITICAL or INVESTIGATING
-- **Resolved by Claude**: TOTAL count of incidents resolved in current session (increments by 1 each time status=RESOLVED is set)
+- **Resolved by Claude**: Count of CLOSED entries in /docs/incident-history.log (recounted from log file on each dashboard refresh)
 - **Resolution Time**: Time difference between INVESTIGATING timestamp and RESOLVED timestamp, displayed in format "Xm Ys"
 
 ## Incident Log Format
