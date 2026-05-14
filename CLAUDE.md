@@ -76,6 +76,19 @@ Before applying ANY fix:
 4. After fixing, always run npm test before committing
 5. Log every action to /docs/incident-history.log with timestamp
 6. Always update dashboard status after each action
+7. Track resolution time (time from INVESTIGATING to RESOLVED) and include in log entry
+
+## Dashboard Metrics
+- **Active Incidents**: Count of services with status=CRITICAL or INVESTIGATING
+- **Resolved by Claude**: TOTAL count of incidents resolved in current session (increments by 1 each time status=RESOLVED is set)
+- **Resolution Time**: Time difference between INVESTIGATING timestamp and RESOLVED timestamp, displayed in format "Xm Ys"
+
+## Incident Log Format
+Each entry follows this format:
+- INCIDENT: "INCIDENT|[timestamp]|[service]|[bug description]|OPEN"
+- INVESTIGATING: "INVESTIGATING|[timestamp]|[service]|Main Agent activated|IN_PROGRESS"
+- RESOLVED: "RESOLVED|[timestamp]|[service]|[notes]|CLOSED|[resolution_time]"
+  - resolution_time format: "Xm Ys" (e.g., "5m 23s")
 
 ## Short Sentinel Agent Command
 When a service is CRITICAL, use this short command:
@@ -86,18 +99,20 @@ This triggers full flow:
 2. Appends "INVESTIGATING|[timestamp]|[service]|Main Agent activated|IN_PROGRESS" to incident-history.log
 3. Spawns Subagent Alpha to read logs, find and fix the bug
 4. Spawns Subagent Beta to write and run regression tests
-5. Main Agent updates dashboard to RESOLVED with resolved_by="Claude Sentinel"
-6. Appends "RESOLVED|[timestamp]|[service]|Fix verified by Beta|CLOSED" to incident-history.log
-7. Restarts the fixed service automatically
+5. Main Agent calculates resolution time (RESOLVED timestamp - INVESTIGATING timestamp)
+6. Main Agent updates dashboard to RESOLVED with resolved_by="Claude Sentinel" — increments "Resolved by Claude" counter
+7. Appends "RESOLVED|[timestamp]|[service]|Fix verified by Beta|CLOSED|[resolution_time]" to incident-history.log
+8. Restarts the fixed service using "node <service-file>.js &"
 
 ## Auto-Restart Protocol
 - poll-services.js monitors all services every 10 seconds
 - When service status is RESOLVED in database → automatically restart using: node <service-file>.js &
+- IMPORTANT: On Git Bash (Windows), use "node <service-file>.js &" directly. NEVER use "start /b"
 - After restart wait 3 seconds → check health → if OK update database to OK
 - Service paths:
-  * service-auth: C:\Users\HP\project-sentinel\services\service-auth.js
-  * service-payment: C:\Users\HP\project-sentinel\services\service-payment.js
-  * service-inventory: C:\Users\HP\project-sentinel\services\service-inventory.js
+  * service-auth: C:/Users/HP/project-sentinel/services/service-auth.js
+  * service-payment: C:/Users/HP/project-sentinel/services/service-payment.js
+  * service-inventory: C:/Users/HP/project-sentinel/services/service-inventory.js
 
 ## Agent Roles — STRICT
 - Main Agent: ONLY updates dashboard UI and incident status
