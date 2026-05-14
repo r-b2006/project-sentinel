@@ -9,12 +9,13 @@ export async function GET() {
         const filePath = path.join(process.cwd(), '..', 'docs', 'incident-history.log');
 
         if (!fs.existsSync(filePath)) {
-            return NextResponse.json({ log: 'No incidents yet' });
+            return NextResponse.json({ log: 'No incidents yet', resolvedByClaude: 0 });
         }
 
         const fileContents = fs.readFileSync(filePath, 'utf8');
-        return NextResponse.json({ log: fileContents });
+        const closedCount = (fileContents.match(/\|CLOSED\|/g) || []).length;
+        return NextResponse.json({ log: fileContents, resolvedByClaude: closedCount });
     } catch (error) {
-        return NextResponse.json({ log: 'No incidents yet' });
+        return NextResponse.json({ log: 'No incidents yet', resolvedByClaude: 0 });
     }
 }

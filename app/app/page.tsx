@@ -14,6 +14,7 @@ export default function Home() {
   const [services, setServices] = useState<ServiceStatus[]>([]);
   const [incidentLog, setIncidentLog] = useState<string>('');
   const [currentTime, setCurrentTime] = useState<string>('');
+  const [resolvedByClaude, setResolvedByClaude] = useState<number>(0);
 
   useEffect(() => {
     const updateTime = () => {
@@ -34,6 +35,9 @@ export default function Home() {
       const incidentsData = await incidentsRes.json();
       setServices(Array.isArray(servicesData) ? servicesData : []);
       setIncidentLog(incidentsData.log || '');
+      if (incidentsData.resolvedByClaude !== undefined) {
+        setResolvedByClaude(incidentsData.resolvedByClaude);
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     }
@@ -46,7 +50,6 @@ export default function Home() {
   }, []);
 
   const activeIncidents = services.filter(s => s.status === 'CRITICAL' || s.status === 'INVESTIGATING').length;
-  const resolvedByClaude = services.filter(s => s.resolved_by && s.resolved_by.trim() !== '').length;
   const totalServices = services.length || 1;
   const okServices = services.filter(s => s.status === 'OK').length;
   const systemHealth = Math.round((okServices / totalServices) * 100);
