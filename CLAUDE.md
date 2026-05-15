@@ -106,7 +106,7 @@ This triggers full flow - complete ALL 10 steps automatically, never stop to ask
 **Step 5**: Main Agent calculates resolution time
 **Step 6**: Main Agent logs RESOLVED|CLOSED|[resolution_time] to /docs/incident-history.log
 **Step 7**: Main Agent updates dashboard to RESOLVED, recounts ALL CLOSED entries in incident-history.log and updates Resolved by Claude counter
-**Step 8**: Strictly Restart fixed service using "node <service-file>.js" — NEVER use start /b
+**Step 8**: Strictly Restart fixed service using "start cmd /k node <service-file>.js" — opens in visible CMD window
 **Step 9**: Verify health endpoint returns OK
 **Step 10**: Poll-services window auto-updates showing service back as OK
 ```
@@ -119,7 +119,7 @@ This triggers full flow - complete ALL 10 steps automatically, never stop to ask
 
 ## Auto-Restart Protocol
 - poll-services.js monitors all services every 10 seconds
-- When service status is RESOLVED in database → automatically restart using: node <service-file>.js
+- When service status is RESOLVED in database → automatically restart using: start cmd /k node <service-file>.js
 - NEVER use "start /b" or "start node"
 - After restart wait 3 seconds → check health → if OK update database to OK
 - Service paths:
