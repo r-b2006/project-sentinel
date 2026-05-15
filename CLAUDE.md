@@ -94,20 +94,29 @@ Each entry follows this format:
 When a service is CRITICAL, use this short command:
 "SENTINEL AGENT — [service-name] is CRITICAL. Execute full Resolution Protocol from CLAUDE.md with Main Agent, Alpha Debugger, and Beta QA. After Beta confirms, restart the fixed service."
 
-This triggers full flow:
-1. Main Agent updates dashboard to INVESTIGATING
-2. Appends "INVESTIGATING|[timestamp]|[service]|Main Agent activated|IN_PROGRESS" to incident-history.log
-3. Spawns Subagent Alpha to read logs, find and fix the bug
-4. Spawns Subagent Beta to write and run regression tests
-5. Main Agent calculates resolution time (RESOLVED timestamp - INVESTIGATING timestamp)
-6. Main Agent updates dashboard to RESOLVED with resolved_by="Claude Sentinel" — increments "Resolved by Claude" counter
-7. Appends "RESOLVED|[timestamp]|[service]|Fix verified by Beta|CLOSED|[resolution_time]" to incident-history.log
-8. Restarts the fixed service using "node <service-file>.js &"
+This triggers full flow - complete ALL 10 steps automatically, never stop to ask questions:
+
+**Step 1**: Main Agent updates dashboard to INVESTIGATING via POST to http://localhost:3000/api/services/update
+**Step 2**: Main Agent logs INVESTIGATING entry to /docs/incident-history.log
+**Step 3**: Spawn Subagent Alpha to read /services/logs/, find and fix the bug
+**Step 4**: Spawn Subagent Beta to write and run regression tests
+**Step 5**: Main Agent calculates resolution time
+**Step 6**: Main Agent logs RESOLVED|CLOSED|[resolution_time] to /docs/incident-history.log
+**Step 7**: Main Agent updates dashboard to RESOLVED, recounts ALL CLOSED entries in incident-history.log and updates Resolved by Claude counter
+**Step 8**: Strictly Restart fixed service using "node <service-file>.js" — NEVER use start /b
+**Step 9**: Verify health endpoint returns OK
+**Step 10**: Poll-services window auto-updates showing service back as OK
+
+**STRICT RULES:**
+- Never stop to ask questions
+- Never use start /b
+- If a command fails, try alternative and continue automatically
+- Complete ALL 10 steps every single time
 
 ## Auto-Restart Protocol
 - poll-services.js monitors all services every 10 seconds
-- When service status is RESOLVED in database → automatically restart using: node <service-file>.js &
-- IMPORTANT: On Git Bash (Windows), use "node <service-file>.js &" directly. NEVER use "start /b"
+- When service status is RESOLVED in database → automatically restart using: node <service-file>.js
+- NEVER use "start /b" or "start node"
 - After restart wait 3 seconds → check health → if OK update database to OK
 - Service paths:
   * service-auth: C:/Users/HP/project-sentinel/services/service-auth.js
