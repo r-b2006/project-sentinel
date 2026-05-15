@@ -45,6 +45,7 @@ node scripts/poll-services.js
 ```
 
 ## Architecture
+```
 project-sentinel/
 ├── app/                 # Next.js dashboard (TypeScript)
 │   ├── app/page.tsx    # Main dashboard UI
@@ -60,6 +61,7 @@ project-sentinel/
 ├── docs/
 │   └── incident-history.log  # Resolution log
 └── sentinel.db         # SQLite database for service status
+```
 
 ## TypeScript & Code Standards
 - Always use strict TypeScript
@@ -96,6 +98,7 @@ When a service is CRITICAL, use this short command:
 
 This triggers full flow - complete ALL 10 steps automatically, never stop to ask questions:
 
+```
 **Step 1**: Main Agent updates dashboard to INVESTIGATING via POST to http://localhost:3000/api/services/update
 **Step 2**: Main Agent logs INVESTIGATING entry to /docs/incident-history.log
 **Step 3**: Spawn Subagent Alpha to read /services/logs/, find and fix the bug
@@ -106,6 +109,7 @@ This triggers full flow - complete ALL 10 steps automatically, never stop to ask
 **Step 8**: Strictly Restart fixed service using "node <service-file>.js" — NEVER use start /b
 **Step 9**: Verify health endpoint returns OK
 **Step 10**: Poll-services window auto-updates showing service back as OK
+```
 
 **STRICT RULES:**
 - Never stop to ask questions
