@@ -1,1 +1,1 @@
-It contain the files got after giving "/export" command to Claude Code at different different instants
+It contains the files generated after running the "/export" command in Claude Code during different sessions.
